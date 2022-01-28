@@ -21,16 +21,17 @@ int main(int argc , char *argv[])
 	server.sin_addr.s_addr = inet_addr("10.7.6.34");
 	server.sin_family = AF_INET;
 	server.sin_port = htons( 8888 );
-
+	char buff[1000];
 	//Connect to remote server
 	if (connect(sock , (struct sockaddr *)&server , sizeof(server)) < 0)
 	{
 		perror("connect failed. Error");
 		return 1;
 	}
-	
+	recv(sock,buff,1000,0);
+	send(sock,"1",1,0);
 	puts("Connected\n");
-	
+	puts(buff);
 	//keep communicating with server
 	while(1){
 		printf("Enter message : ");
