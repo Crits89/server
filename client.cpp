@@ -1,6 +1,3 @@
-/*
-	C ECHO client example using sockets
-*/
 #include <stdio.h>	//printf
 #include <string.h>	//strlen
 #include <sys/socket.h>	//socket
@@ -21,7 +18,7 @@ int main(int argc , char *argv[])
 	}
 	puts("Socket created");
 	
-	server.sin_addr.s_addr = inet_addr("127.0.0.1");
+	server.sin_addr.s_addr = inet_addr("10.7.6.34");
 	server.sin_family = AF_INET;
 	server.sin_port = htons( 8888 );
 
@@ -35,8 +32,7 @@ int main(int argc , char *argv[])
 	puts("Connected\n");
 	
 	//keep communicating with server
-	while(1)
-	{
+	while(1){
 		printf("Enter message : ");
 		scanf("%s" , message);
 		
@@ -51,13 +47,12 @@ int main(int argc , char *argv[])
 		if( recv(sock , server_reply , 2000 , 0) < 0)
 		{
 			puts("recv failed");
-			break;
 		}
 		
 		puts("Server reply :");
 		puts(server_reply);
+		
 	}
-	
 	close(sock);
 	return 0;
 }

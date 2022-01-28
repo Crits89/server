@@ -1,61 +1,27 @@
 #include<stdio.h>
+#include<stdlib.h>
 #include<string.h>	//strlen
 #include<sys/socket.h>
 #include<arpa/inet.h>	//inet_addr
 #include<unistd.h>	//write
-
-int main(int argc , char *argv[])
-{
-	int socket_desc , client_sock , c , read_size;
+#include<pthread.h>
+int socket_desc, client_test, c , read_size;
 	struct sockaddr_in server , client;
-	char client_message[2000];
 	
-	//Create socket
-	socket_desc = socket(AF_INET , SOCK_STREAM , 0);
-	if (socket_desc == -1)
-	{
-		printf("Could not create socket");
-	}
-	puts("Socket created");
+struct data
+{
+	int discript;
+	char messsage[1000];
+};
+
+void *init_socket(void* ssd){
+	struct data *a = (struct data*)ssd; 
+while((read_size = recv(a->discript , a->messsage , 1000 , 0)) > 0){
+		printf("Descript %d", a->discript);
+		puts(a->messsage);
+		write(a->discript , a->messsage , strlen((const char*)a->messsage));
 	
-	//Prepare the sockaddr_in structure
-	server.sin_family = AF_INET; // PROTOCOL TCP
-	server.sin_addr.s_addr = INADDR_ANY; // CONNECTION IP
-	server.sin_port = htons( 8888 ); // 
-	
-	//Bind
-	if( bind(socket_desc,(struct sockaddr *)&server , sizeof(server)) < 0)
-	{
-		//print the error message
-		perror("bind failed. Error");
-		return 1;
-	}
-	puts("bind done");
-	
-	//Listen
-	listen(socket_desc , 3);
-	
-	//Accept and incoming connection
-	puts("Waiting for incoming connections...");
-	c = sizeof(struct sockaddr_in);
-	
-	//accept connection from an incoming client
-	client_sock = accept(socket_desc, (struct sockaddr *)&client, (socklen_t*)&c);
-	if (client_sock < 0)
-	{
-		perror("accept failed");
-		return 1;
-	}
-	puts("Connection accepted");
-	
-	//Receive a message from client
-	while( (read_size = recv(client_sock , client_message , 2000 , 0)) > 0 )
-	{
-		//Send the message back to client
-		write(client_sock , client_message , strlen(client_message));
-		puts(client_message);
-	}
-	
+}
 	if(read_size == 0)
 	{
 		puts("Client disconnected");
@@ -64,6 +30,40 @@ int main(int argc , char *argv[])
 	else if(read_size == -1)
 	{
 		perror("recv failed");
+	}
+}
+
+int main(int argc , char *argv[])
+{
+	//Create socket
+	socket_desc = socket(AF_INET , SOCK_STREAM , 0);
+	if (socket_desc == -1)
+	{
+		printf("Could not create soNULLcket");
+	}
+	puts("Socket created");
+	
+	//Prepare the sockaddr_in structure
+	server.sin_family = AF_INET;
+	server.sin_addr.s_addr = INADDR_ANY;
+	server.sin_port = htons( 8888 );
+	
+	//Bind
+	bind(socket_desc,(sockaddr*)&server,sizeof(sockaddr));
+	listen(socket_desc,5);
+	puts("connection from an incoming client");
+	while(1){
+	struct data *client_sock = (struct data*)malloc(sizeof(struct data));
+	client_sock->discript = accept(socket_desc, (struct sockaddr *)&client, (socklen_t*)&c);
+	//printf("DESCRIPT: %d \n",*client_sock);
+	pthread_t *thread_socket = (pthread_t*)malloc(sizeof(pthread_t));
+	pthread_create(thread_socket,NULL,init_socket,(int*)client_sock);
+	if (client_sock < 0)
+	{
+		perror("accept failed");
+		return 1;
+	}
+	puts("Connection accepted");
 	}
 	
 	return 0;
