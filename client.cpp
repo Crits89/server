@@ -9,6 +9,14 @@ int main(int argc , char *argv[])
 	int sock;
 	struct sockaddr_in server;
 	char message[1000] , server_reply[2000];
+	char rejim;
+	printf("%s",argv[1]);
+	if(argv[1]=="pult"){
+		rejim='5';
+		}
+		if(argv[1]=="point"){
+		rejim='6';
+		}
 	
 	//Create socket
 	sock = socket(AF_INET , SOCK_STREAM , 0);
@@ -18,7 +26,7 @@ int main(int argc , char *argv[])
 	}
 	puts("Socket created");
 	
-	server.sin_addr.s_addr = inet_addr("10.7.6.34");
+	server.sin_addr.s_addr = inet_addr("127.0.0.1");
 	server.sin_family = AF_INET;
 	server.sin_port = htons( 8888 );
 	char buff[1000];
@@ -29,7 +37,6 @@ int main(int argc , char *argv[])
 		return 1;
 	}
 	recv(sock,buff,1000,0);
-	send(sock,"1",1,0);
 	puts("Connected\n");
 	puts(buff);
 	//keep communicating with server
@@ -38,7 +45,18 @@ int main(int argc , char *argv[])
 		scanf("%s" , message);
 		
 		//Send some data
-		if( send(sock , message , strlen(message) , 0) < 0)
+		char temp[1000];
+		
+			temp[0] = '5';
+		
+		temp[1]=strlen(message);
+		
+		for(int a=0;a<strlen(message);a++){
+			temp[a+2]=message[a];
+		}
+		printf("strlen: %d \n ",strlen(message));
+		puts(temp);
+		if( send(sock , temp , strlen(temp) , 0) < 0)
 		{
 			puts("Send failed");
 			return 1;
