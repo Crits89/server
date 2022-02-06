@@ -1,63 +1,111 @@
-#include<stdio.h>
-#include<stdlib.h>
-#include<string.h>	//strlen
-#include<sys/socket.h>
-#include<arpa/inet.h>	//inet_addr
-#include<unistd.h>	//write
-#include<pthread.h>
-int socket_desc, client_test, c , c_client=0, next_id=0;
-	struct sockaddr_in server , client;
+#include "server.h"
+
+
+
+void launch(struct Object &dat){
+
+	uint8_t count=0;
+	for(int i=0;i<c_client+1;i++){
+		if(dat.buffI[i+5]=='0'){
+			printf("break");
+		break;
+	}else{
+		count++;
+		printf("i: %d\n",count);
+	}
+	}
+	for(int a=0;a<count;a++){
+	for(int i=0;i<c_client;i++){
+		if(dat.buffI[a+5]==MassObj[i].id_addres){
+	 printf("buf: %d\n",dat.buffI[a+5]);
+	 printf("discript: %d\nautorez: %d\naddr: %d\npult: %d\n",MassObj[i].discript,MassObj[i].autorez,MassObj[i].id_addres,MassObj[i].pult);
+			send(MassObj[i].discript,"start opv",9,0);
+			usleep(100);
+		}
+	}
+	}
 	
-struct data
-{
-	int id;
-	bool pult=false;
-	int discript;
-	char messsage[1000];
-	void* next;
-};
+}
+
+void this_pult(struct Object &dat){
+	puts("this pult \n");
+		dat.pult=true;
+		struct protocolTCP *protI = (struct protocolTCP*)dat.buffI;
+			if(dat.buffI[4]==49){   													// '1' оповезение
+			 launch(dat);puts("launch\n");
+			}
+			if(dat.buffI[4]==53){dat.id_addres = dat.buffI[3];puts("register addr\n");	// '5' регистрация
+			uint8_t buf[15] = "registr addr: ";
+			buf[14] = dat.id_addres;
+			send(dat.discript,&buf,15,0);
+			}	
+}
+
+void this_point(struct Object &dat){
+	puts("this Point");
+			dat.pult=false;
+		struct protocolTCP *protI = (struct protocolTCP*)dat.buffI;
+		if(dat.buffI[3]==53){dat.id_addres = dat.buffI[3];puts("register addr\n");
+			uint8_t buf[15] = "registr addr: ";
+			buf[14] = dat.id_addres;
+			send(dat.discript,&buf,15,0);
+			}
+}
+
+
 
 void *init_socket(void* ssd){
-	struct data *a = (struct data*)ssd;
+	struct Object *a = (struct Object*)ssd;
 	uint16_t size_packet=0,read_size=0;
-while((read_size = recv(a->discript , a->messsage , 1000 , 0)) > 0){
+while((read_size = recv(a->discript , a->buffI , 512 , 0)) > 0){
+		if((unsigned char)a->buffI[1]==255){
+			a->buffI[1]=0;
+			
+		}
 		
-		printf("mess: %c ", a->messsage[0]);
-		printf("size: %d",(int16_t)a->messsage[1]);
-		size_packet = a->messsage[1];
-		
-		//write(a->discript , a->messsage , strlen((const char*)a->messsage));
-
-		if(a->messsage[0]=='5'){
-			puts("this pult");
-			a->pult=true;
-			if(read_size-2 == a->messsage[1]){
-				puts("paket OK");
+		size_packet = (uint16_t)(a->buffI[2]|a->buffI[1]<<8);
+		printf("1: %d \n2: %d\n",(unsigned char)a->buffI[1]<<8,(unsigned char)a->buffI[2]);
+		printf("%d : %d\n",read_size-3,size_packet);
+		if(read_size-3 == size_packet){
+			a->autorez = true;
+			
+			if(a->buffI[0]==0x01){
+				this_pult(*a);
 			}
+
+			if(a->buffI[0]==0x10){
+				this_point(*a);
+			}
+		}else{
+
+		}
+
 			printf("paket size: %d \n",read_size);
-		}
-		if(a->messsage[3]=='10'&& a->pult==true ){
-
-		}
-		if(a->messsage[0]=='6'){
-			puts("this Point");
-			a->pult=false;
-			if(read_size-2 == a->messsage[1]){
-				puts("paket OK");
-			}
-		}
-		puts(a->messsage+(sizeof(char)*2));
+		
+		puts(a->buffI+(sizeof(char)*3));
+		memset(a->buffI,0,512);
 	
 }
 	if(read_size == 0)
 	{
 		puts("Client disconnected");
 		fflush(stdout);
+		next_id = a->id;
+		close(a->discript);
+		a->autorez=false;
+		a->discript=NULL;
+		a->id=0xFF;
+		a->pult=false;
+		memset(a->buffI,0,512);
+		memset(a->buffO,0,512);
+		
 	}
 	else if(read_size == -1)
 	{
 		perror("recv failed");
 	}
+	
+	pthread_exit(0);
 }
 
 int main(int argc , char *argv[])
@@ -66,7 +114,7 @@ int main(int argc , char *argv[])
 	socket_desc = socket(AF_INET , SOCK_STREAM , 0);
 	if (socket_desc == -1)
 	{
-		printf("Could not create soNULLcket");
+		printf("Could not create socket");
 	}
 	puts("Socket created");
 	char bbaf[10];
@@ -77,10 +125,10 @@ int main(int argc , char *argv[])
 	struct sockaddr getaddr;
 	//Bind
 	bind(socket_desc,(sockaddr*)&server,sizeof(sockaddr));
-	listen(socket_desc,100);
+	listen(socket_desc,128);
 	puts("connection from an incoming client");
-	struct data *client_sock = (struct data*)malloc(sizeof(struct data)*30);
-	
+	struct Object *client_sock = (struct Object*)malloc(sizeof(struct Object)*30);
+	MassObj = client_sock;
 	while(1){
 		if(c_client>29){
 
@@ -88,6 +136,7 @@ int main(int argc , char *argv[])
 		 
 	client_sock[next_id].discript = accept(socket_desc, (struct sockaddr *)&client, (socklen_t*)&c);
 	//printf("DESCRIPT: %d \n",*client_sock);
+	//client_sock[next_id].id_addres = 49;
 	client_sock[next_id].id=next_id;
 	pthread_t *thread_socket = (pthread_t*)malloc(sizeof(pthread_t));
 	pthread_create(thread_socket,NULL,init_socket,(void*)&client_sock[next_id]);
