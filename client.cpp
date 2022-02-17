@@ -9,23 +9,83 @@ bool listen_tcp=false;
 bool listen_udp=false;
 int sock;
 char server_reply[512];
-void* my_listen(void *dat){
-	puts("in my_listen\n");
 
-	while(recv(sock , server_reply , 512 , 0))
+
+struct protocolTCP
+{
+	uint8_t Obj; //pult or point
+	uint16_t pack_lenth; 
+	uint8_t id; 
+	uint8_t command;
+	uint8_t data[256-7];
+};
+struct protocolTCP send_pac;
+struct protocolTCP recive_pac;
+//*****************************************CRC****************************************************
+// полином 0x1163
+uint16_t Crc16(uint8_t *pc, uint16_t len)
+{
+    uint16_t crc = 0xFFFF;
+    uint8_t i;
+
+    while (len--)
+    {
+		printf("№%d: %#x\n",len, *pc);
+        crc ^= *pc++ << 8;
+
+        for (i = 0; i < 8; i++)
+            crc = crc & 0x8000 ? (crc << 1) ^ 0x1163 : crc << 1;
+    }
+    return crc;
+}
+
+
+void* my_listen(void *dat){
+	
+
+	while(recv(sock , &recive_pac , 256 , 0))
 		{
-			puts(server_reply);
+			
+			//printf("%#x\n",&prot);
+			 if(memcmp(recive_pac.data,"REG OK",6)){
+				 puts((char*)recive_pac.data);
+			 	//puts("REGISTERED IS OK");
+			 }else{
+			 	puts((char*)recive_pac.data);
+			  }
+			memset(server_reply,0,256);
 		}
 		puts("socket exit\n");
 	pthread_exit(0);
 }
 
 
+uint8_t send_packet(uint8_t command){
+	
+		uint16_t len = strlen((char*)send_pac.data);
+		
+		send_pac.pack_lenth = len+6;
+		uint16_t crc = Crc16((uint8_t*)&send_pac,len+6);
+		printf("crc: %d\n",crc);
+		memcpy(&send_pac.data[len],&crc,2);
+		if(send(sock , (char*)&send_pac , len+8 , 0) < 0)
+		{
+			puts("Send failed");
+			return 1;
+		}
+		return 0;
+		memset(&send_pac,0x00,256);
+}
+
+
+
+
+
 int main(int argc , char *argv[])
 {
 	
 	struct sockaddr_in server;
-	char message[500] , server_reply[500], temp[500];;
+	char message[256] , server_reply[256], temp[256];;
 	char rejim;
 	printf("%s",argv[1]);
 	
@@ -58,24 +118,17 @@ int main(int argc , char *argv[])
 	pthread_create(&thread_id, NULL, my_listen, NULL);
 	puts("Connected\n");
 	//keep communicating with server
+	
+
 	while(1){
-		printf("Enter message : \n");
-		
-		scanf("%s" , &message[4]);
-		
-		message[0] = rejim;
-		message[1] = (unsigned)0xFF;
-		message[2] = strlen(&message[3]);
-		message[3] = argv[3][0];
-		
-		puts(message);
-		printf("1: %d\n2: %d\n3: %d\n4: %d\n",message[0],message[1],message[2],message[3]);
-		
-		if( send(sock , message , strlen(message) , 0) < 0)
-		{
-			puts("Send failed");
-			return 1;
-		}
+		send_pac.Obj = rejim;
+		send_pac.id = argv[3][0];
+		printf("Enter command : \n");
+		scanf("%d" , &send_pac.command);
+		printf("%d\n",send_pac.command);
+		printf("Enter data : \n");
+		scanf("%s" , send_pac.data);
+		send_packet(1);
 		
 	}
 	close(sock);
