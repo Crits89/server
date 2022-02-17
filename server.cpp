@@ -5,6 +5,7 @@
 //****************command**************
 #define LAUNCH 1
 #define REGISTRY 5
+#define STATUS_POINT 6
 #define IS_PULT 1
 #define IS_POINT 0x10
 
@@ -17,7 +18,7 @@ uint16_t Crc16(uint8_t *pc, uint16_t len)
 
     while (len--)
     {
-		//printf("№%d: %#x\n",len, *pc);
+		
         crc ^= *pc++ << 8;
 
         for (i = 0; i < 8; i++)
@@ -26,7 +27,7 @@ uint16_t Crc16(uint8_t *pc, uint16_t len)
     return crc;
 }
 
-bool send_packet(struct Object &obj,char *msg, int lenth)
+bool send_packet(struct Object &obj, char *msg, int lenth)
 {
 	struct protocolTCP *prot = (struct protocolTCP*)&obj.buffI;
 	
@@ -42,7 +43,6 @@ bool send_packet(struct Object &obj,char *msg, int lenth)
 		}
 		return 0;
 		memset(&prot,0x00,256);
-
 }
 
 
@@ -51,7 +51,6 @@ bool send_packet(struct Object &obj,char *msg, int lenth)
 //***************************************  LAUNCH  *************************************************
 void launch(struct Object &dat){
 	dat.reciver = (struct protocolTCP*)dat.buffI;
-		printf("dat id: %#x\n",dat.reciver->id);
 
 	
 	for(int ind=0;ind<c_client;ind++){
@@ -91,7 +90,10 @@ void this_point(struct Object &dat){
 		if(protI->command==REGISTRY){ // '5' регистрация
 			dat.id = dat.reciver->id;
 			send(dat.discript,"REG OK",6,0);
-			}	
+			}
+		if(protI->command==STATUS_POINT){
+			
+		}	
 }
 //***************************************  SOCKET INIT  *************************************************
 void *init_socket(void* ssd){
@@ -152,6 +154,9 @@ while((read_size = recv(a->discript , a->buffI , 256 , 0)) > 0){
 //***************************************  MAIN  *************************************************
 int main(int argc , char *argv[])
 {
+	sqlite3 *DB;
+	sqlite3_open("base.db",&DB);
+	
 	//Create socket
 	socket_desc = socket(AF_INET , SOCK_STREAM , 0);
 	if (socket_desc == -1)

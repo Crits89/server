@@ -8,7 +8,7 @@
 #include<arpa/inet.h>	//inet_addr
 #include<unistd.h>	//write
 #include<pthread.h>
-
+#include<sqlite3.h>
 
 	int socket_desc, client_test, c , c_client=0, next_id=0;
 	struct sockaddr_in server , client;
