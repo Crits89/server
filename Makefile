@@ -1,7 +1,10 @@
-all: server.elf client_arm.elf client.elf
-server.elf: server.cpp
-	gcc -std=gnu++11 -Wall -g -o server.elf server.cpp -lpthread
+all: server.elf client.elf
+server.elf: server.o
+	g++ -std=gnu++11 -Wall server.o -o server.elf -lpthread -lsqlite3
+server.o: server.cpp
+	g++ -c server.cpp 
 client.elf: client.cpp
-	gcc -std=gnu++11 -Wall -g -o client.elf client.cpp -lpthread
-clean: *.elf
+	g++ -std=gnu++11 -Wall -o client.elf client.cpp -lpthread
+clean:
 	rm -rf *.elf
+	rm -rf *.o
